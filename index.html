@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Human Body Explorer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0b0a1a;
+    --surface: rgba(22,21,45,0.95);
+    --surface2: rgba(35,34,70,0.9);
+    --accent: #ff6e96;
+    --accent2: #7f5af0;
+    --accent3: #2cb67d;
+    --text: #fffffe;
+    --text-dim: #8892a8;
+    --glow: rgba(127, 90, 240, 0.35);
+    --glass: rgba(255,255,255,0.04);
+    --glass-border: rgba(255,255,255,0.08);
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 600px 400px at 10% 20%, rgba(127,90,240,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 500px 500px at 85% 75%, rgba(255,110,150,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 400px 300px at 50% 50%, rgba(44,182,125,0.05) 0%, transparent 70%);
+    z-index: 0;
+    pointer-events: none;
+    animation: bgShift 20s ease-in-out infinite alternate;
+  }
+
+  @keyframes bgShift {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+  }
+
+  /* Floating particles background */
+  .bg-particles {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .bg-particle {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0;
+    animation: floatParticle linear infinite;
+  }
+
+  @keyframes floatParticle {
+    0% { transform: translateY(100vh) scale(0); opacity: 0; }
+    10% { opacity: 0.6; }
+    90% { opacity: 0.6; }
+    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+  }
+
+  header {
+    text-align: center;
+    padding: 18px 20px 6px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header h1 {
+    font-size: 2.4rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #ff6e96, #c77dff, #7f5af0);
+    background-size: 200% 200%;
+    animation: gradShift 4s ease infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+    text-shadow: 0 0 40px rgba(127,90,240,0.3);
+  }
+
+  @keyframes gradShift {
+    0%,100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  header p {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    margin-top: 2px;
+    font-weight: 600;
+  }
+
+  .score-bar {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    padding: 10px 20px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 1;
+  }
+
+  .score-item {
+    background: var(--surface);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 8px 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+
+  .score-item .icon { font-size: 1.1rem; }
+  .score-item .val { color: var(--accent); font-size: 1rem; }
+  .score-item.streak .val { color: var(--accent3); }
+  .score-item.timer .val { color: var(--accent2); }
+
+  .game-container {
+    display: flex;
+    gap: 20px;
+    padding: 10px 24px 40px;
+    max-width: 1440px;
+    margin: 0 auto;
+    align-items: flex-start;
+    min-height: calc(100vh - 130px);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ======= LEFT PANEL ======= */
+  .panel-left {
+    width: 230px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 18px;
+    border: 1px solid var(--glass-border);
+    position: sticky;
+    top: 16px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  .panel-left h2 {
+    font-size: 0.95rem;
+    font-weight: 800;
+    margin-bottom: 14px;
+    color: var(--accent2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.8rem;
+  }
+
+  .organ-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 2px;
+  }
+
+  .organ-checkbox:hover { background: var(--glass); }
+
+  .organ-checkbox input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(127,90,240,0.4);
+    border-radius: 5px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    background: rgba(127,90,240,0.05);
+  }
+
+  .organ-checkbox input[type="checkbox"]:checked {
+    background: var(--accent2);
+    border-color: var(--accent2);
+    box-shadow: 0 0 8px rgba(127,90,240,0.4);
+  }
+
+  .organ-checkbox input[type="checkbox"]:checked::after {
+    content: '\2713';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .organ-checkbox .cb-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px currentColor;
+  }
+
+  .organ-checkbox .cb-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    transition: color 0.2s;
+  }
+
+  .organ-checkbox:hover .cb-label { color: var(--text); }
+
+  .select-btns {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .select-btns button {
+    flex: 1;
+    padding: 6px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass);
+    color: var(--text-dim);
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.7rem;
+    font-weight: 700;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .select-btns button:hover {
+    background: var(--accent2);
+    color: white;
+    border-color: var(--accent2);
+  }
+
+  .difficulty {
+    display: flex;
+    gap: 5px;
+    margin-top: 14px;
+  }
+
+  .difficulty button {
+    flex: 1;
+    padding: 8px 4px;
+    border: 1.5px solid var(--glass-border);
+    background: var(--glass);
+    color: var(--text-dim);
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.68rem;
+    font-weight: 800;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .difficulty button.active {
+    border-color: var(--accent2);
+    background: rgba(127,90,240,0.2);
+    color: var(--text);
+    box-shadow: 0 0 12px rgba(127,90,240,0.2);
+  }
+
+  .diff-desc {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    margin-top: 6px;
+    text-align: center;
+    line-height: 1.3;
+    min-height: 2.6em;
+  }
+
+  .btn-start {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border: none;
+    border-radius: 14px;
+    color: white;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 800;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: all 0.3s;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 20px rgba(127,90,240,0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-start::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+    transform: rotate(45deg);
+    transition: all 0.5s;
+  }
+
+  .btn-start:hover::before { left: 100%; }
+  .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(127,90,240,0.4); }
+
+  /* ======= CENTER PANEL ======= */
+  .panel-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .body-wrapper {
+    position: relative;
+    width: 420px;
+    height: 760px;
+    flex-shrink: 0;
+  }
+
+  .body-svg-container {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+
+  .body-svg-container svg { width: 100%; height: 100%; }
+
+  /* Drop zones */
+  .drop-zone {
+    position: absolute;
+    border: 2px dashed transparent;
+    border-radius: 10px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    cursor: default;
+  }
+
+  .drop-zone.glow-hint {
+    background: radial-gradient(ellipse, rgba(127,90,240,0.08), transparent 70%);
+    border-color: rgba(127,90,240,0.25);
+    animation: zonePulse 3s ease-in-out infinite;
+  }
+
+  .drop-zone.no-hint {
+    background: rgba(127,90,240,0.03);
+    border-color: rgba(127,90,240,0.12);
+  }
+
+  .drop-zone.hard-hint {
+    background: transparent;
+    border-color: rgba(127,90,240,0.06);
+  }
+
+  @keyframes zonePulse {
+    0%,100% { border-color: rgba(127,90,240,0.2); }
+    50% { border-color: rgba(127,90,240,0.45); }
+  }
+
+  .drop-zone.drag-over {
+    border-color: #ff6e96 !important;
+    border-style: solid !important;
+    background: rgba(255,110,150,0.12) !important;
+    box-shadow: 0 0 30px rgba(255,110,150,0.25), inset 0 0 20px rgba(255,110,150,0.08);
+    transform: scale(1.06);
+    animation: none !important;
+  }
+
+  .drop-zone.correct {
+    border-color: var(--accent3) !important;
+    background: rgba(44,182,125,0.1) !important;
+    border-style: solid !important;
+    animation: correctPulse 0.5s ease;
+  }
+
+  .drop-zone.wrong {
+    animation: wrongShake 0.5s ease !important;
+    border-color: #ff4444 !important;
+    background: rgba(255,68,68,0.1) !important;
+  }
+
+  @keyframes correctPulse {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  @keyframes wrongShake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-10px); }
+    40% { transform: translateX(10px); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(6px); }
+  }
+
+  .placed-organ {
+    position: absolute;
+    z-index: 3;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+  }
+
+  .placed-organ .placed-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--accent3);
+    margin-top: 1px;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  @keyframes popIn {
+    0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+    60% { transform: scale(1.15) rotate(2deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  /* Points popup */
+  .points-popup {
+    position: fixed;
+    z-index: 60;
+    font-weight: 900;
+    font-size: 1.4rem;
+    color: var(--accent3);
+    pointer-events: none;
+    text-shadow: 0 2px 10px rgba(44,182,125,0.5);
+    animation: pointsFly 1s ease-out forwards;
+  }
+
+  @keyframes pointsFly {
+    0% { transform: translateY(0) scale(0.5); opacity: 0; }
+    20% { transform: translateY(-10px) scale(1.2); opacity: 1; }
+    100% { transform: translateY(-60px) scale(0.8); opacity: 0; }
+  }
+
+  /* ======= RIGHT PANEL ======= */
+  .panel-right {
+    width: 270px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 16px;
+  }
+
+  .panel-right h2 {
+    font-size: 0.8rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .organs-tray {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    max-height: 720px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .organs-tray::-webkit-scrollbar { width: 4px; }
+  .organs-tray::-webkit-scrollbar-track { background: transparent; }
+  .organs-tray::-webkit-scrollbar-thumb { background: rgba(127,90,240,0.3); border-radius: 4px; }
+
+  .organ-card {
+    background: var(--surface);
+    border: 1.5px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: grab;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    -webkit-user-select: none;
+    backdrop-filter: blur(8px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .organ-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    border-radius: 0 2px 2px 0;
+    transition: all 0.2s;
+  }
+
+  .organ-card:hover {
+    border-color: rgba(127,90,240,0.4);
+    transform: translateX(-6px) scale(1.02);
+    box-shadow: 6px 4px 24px rgba(0,0,0,0.4), 0 0 20px var(--glow);
+  }
+
+  .organ-card:active { cursor: grabbing; transform: scale(0.97); }
+
+  .organ-card.dragging {
+    opacity: 0.3;
+    transform: scale(0.95);
+    border-color: var(--accent2);
+  }
+
+  .organ-card.placed-card {
+    opacity: 0.25;
+    pointer-events: none;
+    border-color: rgba(44,182,125,0.3);
+    transform: scale(0.96);
+  }
+
+  .organ-card.placed-card::after {
+    content: '\2713';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent3);
+    font-size: 1.1rem;
+    font-weight: 900;
+  }
+
+  .organ-card .organ-icon {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.03);
+    padding: 4px;
+  }
+
+  .organ-card .organ-icon svg { width: 100%; height: 100%; }
+
+  .organ-card .organ-info { flex: 1; min-width: 0; }
+
+  .organ-card .organ-name {
+    font-weight: 800;
+    font-size: 0.88rem;
+    letter-spacing: 0.2px;
+  }
+
+  .organ-card .organ-hint {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    line-height: 1.3;
+    margin-top: 2px;
+  }
+
+  /* Drag ghost */
+  .drag-ghost {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.92;
+    transform: scale(1.15) rotate(-2deg);
+    filter: drop-shadow(0 12px 30px rgba(127,90,240,0.5));
+  }
+
+  /* ======= OVERLAY ======= */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(11,10,26,0.94);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s;
+    backdrop-filter: blur(12px);
+  }
+
+  .overlay.show { opacity: 1; pointer-events: all; }
+
+  .overlay-content {
+    text-align: center;
+    animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 420px;
+    padding: 20px;
+  }
+
+  .overlay-content h2 {
+    font-size: 2.8rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--accent3), #7f5af0, var(--accent));
+    background-size: 200%;
+    animation: gradShift 3s ease infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+
+  .overlay-content p { color: var(--text-dim); font-size: 1rem; margin-bottom: 6px; }
+
+  .overlay-content .big-score {
+    font-size: 3.5rem;
+    font-weight: 900;
+    color: var(--accent);
+    margin: 12px 0;
+    text-shadow: 0 0 40px rgba(255,110,150,0.3);
+  }
+
+  .overlay-content .stars { font-size: 2.5rem; margin: 8px 0 16px; }
+
+  .overlay-content button {
+    padding: 14px 44px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border: none;
+    border-radius: 16px;
+    color: white;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 20px rgba(127,90,240,0.3);
+  }
+
+  .overlay-content button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px var(--glow);
+  }
+
+  /* Confetti */
+  .confetti-piece { position: fixed; z-index: 101; pointer-events: none; }
+
+  /* Fun fact */
+  .fun-fact {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(120px);
+    background: var(--surface);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    padding: 14px 28px;
+    max-width: 520px;
+    z-index: 50;
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-align: center;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+
+  .fun-fact.show { transform: translateX(-50%) translateY(0); }
+  .fun-fact .fact-title { font-weight: 800; color: var(--accent2); font-size: 0.75rem; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .fun-fact .fact-text { font-size: 0.82rem; color: var(--text-dim); line-height: 1.45; }
+
+  /* Responsive */
+  @media (max-width: 1100px) {
+    .game-container { flex-direction: column; align-items: center; }
+    .panel-left, .panel-right { width: 100%; max-width: 500px; position: static; }
+    .panel-left .checkboxes-grid { display: grid; grid-template-columns: 1fr 1fr; }
+    .organs-tray { display: grid !important; grid-template-columns: 1fr 1fr; max-height: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Floating background particles -->
+<div class="bg-particles" id="bgParticles"></div>
+
+<header>
+  <h1>Human Body Explorer</h1>
+  <p>Drag each organ to its correct location inside the body</p>
+</header>
+
+<div class="score-bar">
+  <div class="score-item"><span class="icon">&#127942;</span> Score: <span class="val" id="score">0</span></div>
+  <div class="score-item streak"><span class="icon">&#128293;</span> Streak: <span class="val" id="streak">0</span></div>
+  <div class="score-item"><span class="icon">&#9989;</span> Placed: <span class="val" id="placed">0</span>/<span class="val" id="total">0</span></div>
+  <div class="score-item timer"><span class="icon">&#9201;</span> <span class="val" id="timer">0:00</span></div>
+</div>
+
+<div class="game-container">
+  <!-- LEFT PANEL -->
+  <div class="panel-left">
+    <h2>Select Organs</h2>
+    <div class="select-btns">
+      <button onclick="selectAll()">All</button>
+      <button onclick="selectNone()">None</button>
+    </div>
+    <div class="checkboxes-grid" id="checkboxes"></div>
+    <div class="difficulty">
+      <button class="active" data-diff="easy" onclick="setDifficulty('easy',this)">Easy</button>
+      <button data-diff="medium" onclick="setDifficulty('medium',this)">Medium</button>
+      <button data-diff="hard" onclick="setDifficulty('hard',this)">Hard</button>
+    </div>
+    <div class="diff-desc" id="diffDesc">Drop zones glow gently to guide you</div>
+    <button class="btn-start" id="btnStart" onclick="startGame()">Start Game</button>
+  </div>
+
+  <!-- CENTER - Body -->
+  <div class="panel-center">
+    <div class="body-wrapper" id="bodyWrapper">
+      <div class="body-svg-container">
+        <svg viewBox="0 0 420 760" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="skinGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#f5cba7"/>
+              <stop offset="100%" stop-color="#e0a87c"/>
+            </linearGradient>
+            <linearGradient id="skinGradDark" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#e8b895"/>
+              <stop offset="100%" stop-color="#d49b72"/>
+            </linearGradient>
+            <linearGradient id="hairGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#5a3825"/>
+              <stop offset="100%" stop-color="#3d2417"/>
+            </linearGradient>
+            <linearGradient id="torsoInner" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#1a1230"/>
+              <stop offset="40%" stop-color="#1e1538"/>
+              <stop offset="100%" stop-color="#150e28"/>
+            </linearGradient>
+            <radialGradient id="cheekGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#f4a0a0" stop-opacity="0.5"/>
+              <stop offset="100%" stop-color="#f4a0a0" stop-opacity="0"/>
+            </radialGradient>
+            <filter id="softShadow">
+              <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
+            </filter>
+            <clipPath id="torsoClip">
+              <path d="M138 142 Q132 142 124 168 L112 252 Q108 296 112 340 L120 424 Q124 456 138 466 L156 478 Q182 488 210 490 Q238 488 264 478 L282 466 Q296 456 300 424 L308 340 Q312 296 308 252 L296 168 Q290 142 282 142 Z"/>
+            </clipPath>
+            <filter id="innerGlow">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur"/>
+              <feFlood flood-color="#7f5af0" flood-opacity="0.15"/>
+              <feComposite in2="blur" operator="in"/>
+              <feComposite in="SourceGraphic"/>
+            </filter>
+          </defs>
+
+          <!-- ===== HAIR ===== -->
+          <ellipse cx="210" cy="52" rx="52" ry="56" fill="url(#hairGrad)"/>
+          <path d="M158 52 Q158 20 185 10 Q210 2 235 10 Q262 20 262 52 Q262 36 245 28 Q230 22 210 22 Q190 22 175 28 Q158 36 158 52Z" fill="url(#hairGrad)" opacity="0.9"/>
+
+          <!-- ===== HEAD ===== -->
+          <ellipse cx="210" cy="68" rx="44" ry="52" fill="url(#skinGrad)" filter="url(#softShadow)"/>
+
+          <!-- Ears -->
+          <ellipse cx="164" cy="70" rx="8" ry="14" fill="url(#skinGradDark)"/>
+          <ellipse cx="256" cy="70" rx="8" ry="14" fill="url(#skinGradDark)"/>
+
+          <!-- Cheek blush -->
+          <circle cx="185" cy="82" r="12" fill="url(#cheekGlow)"/>
+          <circle cx="235" cy="82" r="12" fill="url(#cheekGlow)"/>
+
+          <!-- Eyes -->
+          <ellipse cx="195" cy="62" rx="10" ry="7" fill="white"/>
+          <ellipse cx="225" cy="62" rx="10" ry="7" fill="white"/>
+          <circle cx="196" cy="63" r="4.5" fill="#3d2417"/>
+          <circle cx="226" cy="63" r="4.5" fill="#3d2417"/>
+          <circle cx="197" cy="62" r="1.8" fill="white"/>
+          <circle cx="227" cy="62" r="1.8" fill="white"/>
+          <!-- Eyebrows -->
+          <path d="M185 54 Q192 50 204 53" fill="none" stroke="#5a3825" stroke-width="2.2" stroke-linecap="round"/>
+          <path d="M216 53 Q228 50 235 54" fill="none" stroke="#5a3825" stroke-width="2.2" stroke-linecap="round"/>
+          <!-- Nose -->
+          <path d="M208 72 Q210 78 212 72" fill="none" stroke="#d49b72" stroke-width="1.5" stroke-linecap="round"/>
+          <!-- Mouth (smile) -->
+          <path d="M198 90 Q204 97 210 97 Q216 97 222 90" fill="none" stroke="#c67b5c" stroke-width="2" stroke-linecap="round"/>
+
+          <!-- ===== NECK ===== -->
+          <rect x="194" y="118" width="32" height="28" rx="8" fill="url(#skinGrad)"/>
+          <path d="M200 118 L200 142" stroke="#e0a87c" stroke-width="0.6" opacity="0.3"/>
+          <path d="M220 118 L220 142" stroke="#e0a87c" stroke-width="0.6" opacity="0.3"/>
+
+          <!-- ===== TORSO (skin outline) ===== -->
+          <path d="M138 142 Q132 142 124 168 L112 252 Q108 296 112 340 L120 424 Q124 456 138 466 L156 478 Q182 488 210 490 Q238 488 264 478 L282 466 Q296 456 300 424 L308 340 Q312 296 308 252 L296 168 Q290 142 282 142 Z"
+                fill="url(#skinGrad)" filter="url(#softShadow)"/>
+
+          <!-- Torso inner cavity (dark window) -->
+          <path d="M148 155 Q144 155 138 178 L128 254 Q124 294 128 334 L134 410 Q138 438 148 448 L162 458 Q184 466 210 468 Q236 466 258 458 L272 448 Q282 438 286 410 L292 334 Q296 294 292 254 L282 178 Q276 155 272 155 Z"
+                fill="url(#torsoInner)" opacity="0.92"/>
+
+          <!-- Torso inner glow border -->
+          <path d="M148 155 Q144 155 138 178 L128 254 Q124 294 128 334 L134 410 Q138 438 148 448 L162 458 Q184 466 210 468 Q236 466 258 458 L272 448 Q282 438 286 410 L292 334 Q296 294 292 254 L282 178 Q276 155 272 155 Z"
+                fill="none" stroke="rgba(127,90,240,0.25)" stroke-width="1.5"/>
+
+          <!-- Ribs (subtle) -->
+          <g opacity="0.15" stroke="#7f5af0" stroke-width="1" fill="none">
+            <path d="M160 188 Q185 182 210 184 Q235 182 260 188"/>
+            <path d="M155 204 Q185 197 210 199 Q235 197 265 204"/>
+            <path d="M152 220 Q185 212 210 214 Q235 212 268 220"/>
+            <path d="M150 236 Q185 227 210 229 Q235 227 270 236"/>
+            <path d="M150 252 Q185 244 210 246 Q235 244 270 252"/>
+          </g>
+
+          <!-- Spine hint -->
+          <line x1="210" y1="155" x2="210" y2="468" stroke="rgba(127,90,240,0.1)" stroke-width="2" stroke-dasharray="6,4"/>
+
+          <!-- Collarbone -->
+          <path d="M148 150 Q178 142 210 144 Q242 142 272 150" fill="none" stroke="#d49b72" stroke-width="1.5" opacity="0.5"/>
+
+          <!-- ===== ARMS ===== -->
+          <!-- Left arm -->
+          <path d="M124 168 Q102 180 84 222 Q68 264 60 308 Q54 340 56 362 Q58 380 68 386 Q80 384 86 368 Q94 340 100 308 Q106 278 114 252"
+                fill="url(#skinGrad)" stroke="#d49b72" stroke-width="0.8" opacity="0.9" filter="url(#softShadow)"/>
+          <!-- Left hand -->
+          <ellipse cx="62" cy="384" rx="14" ry="18" fill="url(#skinGrad)" transform="rotate(-8 62 384)"/>
+          <path d="M52 376 Q48 368 50 362" stroke="#d49b72" stroke-width="1" fill="none" opacity="0.4"/>
+
+          <!-- Right arm -->
+          <path d="M296 168 Q318 180 336 222 Q352 264 360 308 Q366 340 364 362 Q362 380 352 386 Q340 384 334 368 Q326 340 320 308 Q314 278 306 252"
+                fill="url(#skinGrad)" stroke="#d49b72" stroke-width="0.8" opacity="0.9" filter="url(#softShadow)"/>
+          <!-- Right hand -->
+          <ellipse cx="358" cy="384" rx="14" ry="18" fill="url(#skinGrad)" transform="rotate(8 358 384)"/>
+          <path d="M368 376 Q372 368 370 362" stroke="#d49b72" stroke-width="1" fill="none" opacity="0.4"/>
+
+          <!-- ===== LEGS ===== -->
+          <!-- Left leg -->
+          <path d="M156 478 Q150 490 146 522 L140 592 Q138 636 140 676 Q142 700 146 720 Q150 742 160 750 Q172 754 176 746 Q178 736 176 716 Q174 676 176 636 Q178 596 182 556 Q184 522 188 496"
+                fill="url(#skinGrad)" stroke="#d49b72" stroke-width="0.8" opacity="0.9" filter="url(#softShadow)"/>
+
+          <!-- Right leg -->
+          <path d="M264 478 Q270 490 274 522 L280 592 Q282 636 280 676 Q278 700 274 720 Q270 742 260 750 Q248 754 244 746 Q242 736 244 716 Q246 676 244 636 Q242 596 238 556 Q236 522 232 496"
+                fill="url(#skinGrad)" stroke="#d49b72" stroke-width="0.8" opacity="0.9" filter="url(#softShadow)"/>
+
+          <!-- Navel -->
+          <circle cx="210" cy="420" r="4" fill="none" stroke="rgba(127,90,240,0.2)" stroke-width="1"/>
+          <circle cx="210" cy="420" r="1.5" fill="rgba(127,90,240,0.15)"/>
+
+          <!-- Hip lines -->
+          <path d="M162 468 Q186 476 210 478 Q234 476 258 468" fill="none" stroke="rgba(127,90,240,0.1)" stroke-width="1"/>
+        </svg>
+      </div>
+      <!-- Drop zones injected by JS -->
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel-right">
+    <h2>Drag Organs to the Body</h2>
+    <div class="organs-tray" id="organsTray"></div>
+  </div>
+</div>
+
+<!-- Completion overlay -->
+<div class="overlay" id="overlay">
+  <div class="overlay-content">
+    <h2 id="overlayTitle">Amazing Job!</h2>
+    <p id="overlaySubtitle">You placed all the organs correctly!</p>
+    <div class="big-score" id="overlayScore">0</div>
+    <div class="stars" id="overlayStars"></div>
+    <p id="overlayTime"></p>
+    <button onclick="resetGame()">Play Again</button>
+  </div>
+</div>
+
+<!-- Fun fact popup -->
+<div class="fun-fact" id="funFact">
+  <div class="fact-title">Fun Fact</div>
+  <div class="fact-text" id="factText"></div>
+</div>
+
+<script>
+// ============ BACKGROUND PARTICLES ============
+(function initBgParticles() {
+  const container = document.getElementById('bgParticles');
+  const colors = ['rgba(127,90,240,0.3)', 'rgba(255,110,150,0.2)', 'rgba(44,182,125,0.2)', 'rgba(199,125,255,0.2)'];
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement('div');
+    p.className = 'bg-particle';
+    const size = 2 + Math.random() * 4;
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.left = Math.random() * 100 + '%';
+    p.style.animationDuration = (12 + Math.random() * 20) + 's';
+    p.style.animationDelay = (Math.random() * 15) + 's';
+    container.appendChild(p);
+  }
+})();
+
+// ============ ORGAN DATA ============
+const ORGANS = {
+  brain: {
+    name: 'Brain',
+    color: '#ff9ecd',
+    hint: 'Command center of the body',
+    zone: { x: 178, y: 28, w: 64, h: 58 },
+    fact: 'Your brain uses about 20% of your body\'s total energy, even though it\'s only about 2% of your body weight!',
+    svg: `<svg viewBox="0 0 60 55"><defs>
+      <radialGradient id="brG" cx="50%" cy="40%"><stop offset="0%" stop-color="#ffc4e0"/><stop offset="100%" stop-color="#e87db5"/></radialGradient>
+      </defs>
+      <path d="M30 6 Q38 4 42 10 Q48 8 52 14 Q56 20 54 28 Q58 32 56 38 Q54 44 48 46 Q44 50 38 50 Q34 52 28 50 Q22 52 18 50 Q12 48 8 44 Q4 38 6 32 Q2 28 6 22 Q8 14 14 10 Q20 6 26 8 Q28 4 30 6Z" fill="url(#brG)" stroke="#c95a92" stroke-width="1.2"/>
+      <path d="M30 8 Q30 28 30 50" fill="none" stroke="#c95a92" stroke-width="0.8" opacity="0.4"/>
+      <path d="M14 20 Q22 24 30 22 Q38 24 46 20" fill="none" stroke="#c95a92" stroke-width="0.7" opacity="0.35"/>
+      <path d="M10 32 Q20 36 30 34 Q40 36 50 32" fill="none" stroke="#c95a92" stroke-width="0.7" opacity="0.35"/>
+      <path d="M16 42 Q22 44 28 43 Q34 44 40 42" fill="none" stroke="#c95a92" stroke-width="0.6" opacity="0.3"/>
+      <path d="M28 50 Q29 54 30 54 Q31 54 30 54" stroke="#c95a92" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`
+  },
+  heart: {
+    name: 'Heart',
+    color: '#ff4466',
+    hint: 'Pumps blood through your body',
+    zone: { x: 206, y: 198, w: 54, h: 56 },
+    fact: 'Your heart beats about 100,000 times every day! That\'s roughly 3 billion beats in a lifetime.',
+    svg: `<svg viewBox="0 0 54 56"><defs>
+      <radialGradient id="htG" cx="40%" cy="35%"><stop offset="0%" stop-color="#ff6b8a"/><stop offset="100%" stop-color="#cc1133"/></radialGradient>
+      </defs>
+      <path d="M27 48 Q12 36 6 26 Q0 16 6 9 Q12 2 20 6 Q24 8 27 14 Q30 8 34 6 Q42 2 48 9 Q54 16 48 26 Q42 36 27 48Z" fill="url(#htG)" stroke="#991133" stroke-width="1.2"/>
+      <path d="M27 14 L27 40" stroke="#ff9999" stroke-width="0.6" opacity="0.3"/>
+      <path d="M14 16 Q18 12 22 14" fill="none" stroke="#ff8899" stroke-width="1.8" stroke-linecap="round" opacity="0.4"/>
+      <!-- Aorta -->
+      <path d="M22 8 Q20 2 22 0" stroke="#cc1133" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.7"/>
+      <path d="M32 8 Q34 2 32 0" stroke="#cc1133" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.6"/>
+      </svg>`
+  },
+  lungs_left: {
+    name: 'Left Lung',
+    color: '#79c7ff',
+    hint: 'Breathing organ (your left)',
+    zone: { x: 222, y: 165, w: 58, h: 108 },
+    fact: 'Your left lung is slightly smaller than your right to make room for your heart!',
+    svg: `<svg viewBox="0 0 50 72"><defs>
+      <linearGradient id="llG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a5dbff"/><stop offset="100%" stop-color="#4a9fd6"/></linearGradient>
+      </defs>
+      <path d="M10 6 Q6 2 14 2 Q22 2 28 10 L32 18 Q36 34 36 48 Q36 62 28 68 Q18 72 12 66 Q4 58 4 42 Q4 24 10 6Z" fill="url(#llG)" stroke="#3388bb" stroke-width="1.2"/>
+      <path d="M18 10 Q14 24 14 42 Q14 56 18 64" fill="none" stroke="#3388bb" stroke-width="0.8" opacity="0.3"/>
+      <path d="M24 16 Q20 30 18 48" fill="none" stroke="#3388bb" stroke-width="0.7" opacity="0.25"/>
+      <path d="M12 20 Q16 18 22 20" fill="none" stroke="#3388bb" stroke-width="0.5" opacity="0.2"/>
+      <path d="M10 34 Q14 32 20 34" fill="none" stroke="#3388bb" stroke-width="0.5" opacity="0.2"/>
+      <path d="M10 48 Q14 46 18 48" fill="none" stroke="#3388bb" stroke-width="0.5" opacity="0.2"/></svg>`
+  },
+  lungs_right: {
+    name: 'Right Lung',
+    color: '#79c7ff',
+    hint: 'Breathing organ (your right)',
+    zone: { x: 140, y: 165, w: 62, h: 108 },
+    fact: 'If you stretched out all the airways in your lungs, they would cover about 70 square meters - the size of a tennis court!',
+    svg: `<svg viewBox="0 0 54 72"><defs>
+      <linearGradient id="rlG" x1="1" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a5dbff"/><stop offset="100%" stop-color="#4a9fd6"/></linearGradient>
+      </defs>
+      <path d="M44 6 Q48 2 40 2 Q32 2 26 10 L22 18 Q18 34 18 48 Q18 62 26 68 Q36 72 42 66 Q50 58 50 42 Q50 24 44 6Z" fill="url(#rlG)" stroke="#3388bb" stroke-width="1.2"/>
+      <path d="M36 10 Q40 24 40 42 Q40 56 36 64" fill="none" stroke="#3388bb" stroke-width="0.8" opacity="0.3"/>
+      <path d="M30 16 Q34 30 36 48" fill="none" stroke="#3388bb" stroke-width="0.7" opacity="0.25"/>
+      <path d="M32 20 Q36 18 42 20" fill="none" stroke="#3388bb" stroke-width="0.5" opacity="0.2"/>
+      <path d="M34 34 Q38 32 44 34" fill="none" stroke="#3388bb" stroke-width="0.5" opacity="0.2"/>
+      <path d="M36 48 Q38 46 44 48" fill="none" stroke="#3388bb" stroke-width="0.5" opacity="0.2"/></svg>`
+  },
+  esophagus: {
+    name: 'Esophagus',
+    color: '#fb923c',
+    hint: 'Food tube to the stomach',
+    zone: { x: 200, y: 128, w: 22, h: 88 },
+    fact: 'Food doesn\'t just fall to your stomach - muscles push it down in waves called peristalsis. You can even eat upside down!',
+    svg: `<svg viewBox="0 0 22 88"><defs>
+      <linearGradient id="esG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#ffb070"/><stop offset="50%" stop-color="#fb923c"/><stop offset="100%" stop-color="#e07020"/></linearGradient>
+      </defs>
+      <path d="M11 4 Q8 22 9 44 Q10 66 11 84" fill="none" stroke="url(#esG)" stroke-width="7" stroke-linecap="round"/>
+      <path d="M11 4 Q14 22 13 44 Q12 66 11 84" fill="none" stroke="#dd7722" stroke-width="1" stroke-linecap="round" opacity="0.3"/>
+      <path d="M8 20 L14 20" stroke="#e88030" stroke-width="0.5" opacity="0.3"/>
+      <path d="M8 36 L14 36" stroke="#e88030" stroke-width="0.5" opacity="0.3"/>
+      <path d="M8 52 L14 52" stroke="#e88030" stroke-width="0.5" opacity="0.3"/>
+      <path d="M8 68 L14 68" stroke="#e88030" stroke-width="0.5" opacity="0.3"/></svg>`
+  },
+  stomach: {
+    name: 'Stomach',
+    color: '#ffb347',
+    hint: 'Digests your food with acid',
+    zone: { x: 200, y: 272, w: 66, h: 60 },
+    fact: 'Your stomach acid is strong enough to dissolve metal! The stomach replaces its lining every 3-4 days to protect itself.',
+    svg: `<svg viewBox="0 0 66 58"><defs>
+      <radialGradient id="stG" cx="40%" cy="35%"><stop offset="0%" stop-color="#ffd080"/><stop offset="100%" stop-color="#e89030"/></radialGradient>
+      </defs>
+      <path d="M22 6 Q14 4 8 14 Q2 26 6 38 Q10 48 24 52 Q38 56 50 48 Q60 40 58 28 Q56 16 48 10 Q42 6 34 6 Q28 4 22 6Z" fill="url(#stG)" stroke="#c87020" stroke-width="1.3"/>
+      <path d="M20 8 Q16 10 12 16" fill="none" stroke="#ffe0a0" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+      <path d="M14 22 Q22 26 30 24 Q38 22 44 26" fill="none" stroke="#c87020" stroke-width="0.6" opacity="0.25"/>
+      <path d="M12 32 Q20 36 30 34 Q40 32 48 36" fill="none" stroke="#c87020" stroke-width="0.6" opacity="0.2"/>
+      <!-- Opening at top -->
+      <path d="M22 6 Q20 2 22 0" stroke="#c87020" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.5"/></svg>`
+  },
+  liver: {
+    name: 'Liver',
+    color: '#c2654a',
+    hint: 'Largest internal organ, filters blood',
+    zone: { x: 138, y: 252, w: 74, h: 52 },
+    fact: 'The liver is the only organ that can completely regenerate! You can lose up to 75% of it and it will grow back.',
+    svg: `<svg viewBox="0 0 74 50"><defs>
+      <radialGradient id="lvG" cx="45%" cy="40%"><stop offset="0%" stop-color="#d4785a"/><stop offset="100%" stop-color="#8b3a20"/></radialGradient>
+      </defs>
+      <path d="M8 24 Q4 12 16 6 Q28 2 42 4 Q56 4 66 12 Q72 20 68 30 Q62 42 48 46 Q34 50 20 46 Q8 42 6 32Z" fill="url(#lvG)" stroke="#6b2a15" stroke-width="1.2"/>
+      <path d="M36 4 Q36 24 32 44" fill="none" stroke="#6b2a15" stroke-width="1" opacity="0.3"/>
+      <path d="M16 14 Q22 12 28 14" fill="none" stroke="#e09070" stroke-width="1.5" stroke-linecap="round" opacity="0.3"/>
+      <!-- Gallbladder hint -->
+      <ellipse cx="40" cy="42" rx="6" ry="4" fill="#7dbb5a" opacity="0.5" stroke="#5a8a3a" stroke-width="0.6"/></svg>`
+  },
+  diaphragm: {
+    name: 'Diaphragm',
+    color: '#f472b6',
+    hint: 'Main breathing muscle',
+    zone: { x: 140, y: 258, w: 140, h: 22 },
+    fact: 'Hiccups happen when your diaphragm contracts involuntarily! It\'s the main muscle used for breathing.',
+    svg: `<svg viewBox="0 0 130 24"><defs>
+      <linearGradient id="diG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#f472b6" stop-opacity="0.4"/><stop offset="50%" stop-color="#f472b6"/><stop offset="100%" stop-color="#f472b6" stop-opacity="0.4"/></linearGradient>
+      </defs>
+      <path d="M4 20 Q22 4 44 12 Q65 18 86 12 Q108 4 126 20" fill="none" stroke="url(#diG)" stroke-width="4.5" stroke-linecap="round"/>
+      <path d="M4 20 Q22 6 44 13 Q65 19 86 13 Q108 6 126 20" fill="rgba(244,114,182,0.08)" stroke="none"/></svg>`
+  },
+  pancreas: {
+    name: 'Pancreas',
+    color: '#f7d794',
+    hint: 'Makes insulin & digestive enzymes',
+    zone: { x: 172, y: 308, w: 74, h: 28 },
+    fact: 'The pancreas produces about 1 liter of digestive juices every day! It also makes insulin to control blood sugar.',
+    svg: `<svg viewBox="0 0 74 28"><defs>
+      <linearGradient id="paG" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#f7d794"/><stop offset="100%" stop-color="#d4a843"/></linearGradient>
+      </defs>
+      <path d="M6 16 Q2 10 8 6 Q16 2 30 4 Q44 6 54 8 Q64 10 70 8 Q74 10 72 14 Q68 20 58 18 Q48 16 36 16 Q24 16 14 20 Q6 22 6 16Z" fill="url(#paG)" stroke="#b8882a" stroke-width="1"/>
+      <path d="M12 10 Q20 8 30 10" fill="none" stroke="#b8882a" stroke-width="0.6" opacity="0.3"/></svg>`
+  },
+  spleen: {
+    name: 'Spleen',
+    color: '#a855f7',
+    hint: 'Filters blood, fights infection',
+    zone: { x: 252, y: 276, w: 36, h: 42 },
+    fact: 'You can live without a spleen, but it helps fight infections by filtering blood and recycling old red blood cells!',
+    svg: `<svg viewBox="0 0 36 42"><defs>
+      <radialGradient id="spG" cx="40%" cy="40%"><stop offset="0%" stop-color="#c77dff"/><stop offset="100%" stop-color="#7b2dbf"/></radialGradient>
+      </defs>
+      <path d="M18 4 Q28 2 32 12 Q36 22 32 32 Q28 40 18 40 Q10 40 6 32 Q2 22 6 12 Q10 2 18 4Z" fill="url(#spG)" stroke="#6b1fa0" stroke-width="1"/>
+      <path d="M14 10 Q18 8 22 10" fill="none" stroke="#d9a0ff" stroke-width="1" opacity="0.3"/>
+      <path d="M12 24 Q18 22 24 24" fill="none" stroke="#d9a0ff" stroke-width="0.7" opacity="0.2"/></svg>`
+  },
+  kidneys_right: {
+    name: 'Right Kidney',
+    color: '#d4788a',
+    hint: 'Filters waste from blood',
+    zone: { x: 144, y: 316, w: 36, h: 50 },
+    fact: 'Each kidney contains about 1 million tiny filtering units called nephrons!',
+    svg: `<svg viewBox="0 0 36 50"><defs>
+      <radialGradient id="krG" cx="40%" cy="40%"><stop offset="0%" stop-color="#e8a0b0"/><stop offset="100%" stop-color="#a04058"/></radialGradient>
+      </defs>
+      <path d="M18 4 Q8 4 4 14 Q2 24 4 34 Q8 46 18 46 Q24 46 26 40 Q28 34 26 24 Q24 16 26 10 Q24 4 18 4Z" fill="url(#krG)" stroke="#803040" stroke-width="1"/>
+      <path d="M18 12 Q22 18 22 25 Q22 32 18 38" fill="none" stroke="#803040" stroke-width="0.8" opacity="0.4"/>
+      <circle cx="18" cy="25" r="3" fill="#803040" opacity="0.15"/></svg>`
+  },
+  kidneys_left: {
+    name: 'Left Kidney',
+    color: '#d4788a',
+    hint: 'Filters waste from blood',
+    zone: { x: 240, y: 316, w: 36, h: 50 },
+    fact: 'Your kidneys filter about 180 liters of blood every day, but only produce about 1-2 liters of urine!',
+    svg: `<svg viewBox="0 0 36 50"><defs>
+      <radialGradient id="klG" cx="60%" cy="40%"><stop offset="0%" stop-color="#e8a0b0"/><stop offset="100%" stop-color="#a04058"/></radialGradient>
+      </defs>
+      <path d="M18 4 Q28 4 32 14 Q34 24 32 34 Q28 46 18 46 Q12 46 10 40 Q8 34 10 24 Q12 16 10 10 Q12 4 18 4Z" fill="url(#klG)" stroke="#803040" stroke-width="1"/>
+      <path d="M18 12 Q14 18 14 25 Q14 32 18 38" fill="none" stroke="#803040" stroke-width="0.8" opacity="0.4"/>
+      <circle cx="18" cy="25" r="3" fill="#803040" opacity="0.15"/></svg>`
+  },
+  large_intestine: {
+    name: 'Large Intestine',
+    color: '#7dbb5a',
+    hint: 'Absorbs water, forms waste',
+    zone: { x: 140, y: 340, w: 140, h: 118 },
+    fact: 'Your large intestine is home to trillions of bacteria - there are more bacteria there than cells in your entire body!',
+    svg: `<svg viewBox="0 0 130 110"><defs>
+      <linearGradient id="liG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#9dd67a"/><stop offset="100%" stop-color="#5a9a38"/></linearGradient>
+      </defs>
+      <path d="M108 100 L108 24 Q108 8 92 8 L38 8 Q22 8 22 24 L22 54 Q22 66 34 66 L84 66 Q96 66 96 78 L96 92 Q96 104 84 104 L44 104 Q30 104 22 100" fill="none" stroke="url(#liG)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M108 100 L108 24 Q108 8 92 8 L38 8 Q22 8 22 24 L22 54 Q22 66 34 66 L84 66 Q96 66 96 78 L96 92 Q96 104 84 104 L44 104 Q30 104 22 100" fill="none" stroke="#4a8030" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity="0.3" stroke-dasharray="4,6"/>
+      <circle cx="108" cy="102" r="5" fill="#9dd67a" opacity="0.5"/></svg>`
+  },
+  small_intestine: {
+    name: 'Small Intestine',
+    color: '#f0a0d0',
+    hint: '6 meters long! Absorbs nutrients',
+    zone: { x: 162, y: 362, w: 96, h: 80 },
+    fact: 'Your small intestine is about 6 meters (20 feet) long! If you unfolded all its inner surfaces, it would cover a whole tennis court.',
+    svg: `<svg viewBox="0 0 90 72"><defs>
+      <linearGradient id="siG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f5b8dc"/><stop offset="100%" stop-color="#d070a0"/></linearGradient>
+      </defs>
+      <path d="M16 8 Q24 4 32 8 Q40 12 36 20 Q32 28 40 32 Q48 36 44 44 Q40 52 48 56 Q56 60 52 66 Q44 70 36 66 Q28 62 32 54 Q36 46 28 42 Q20 38 24 30 Q28 22 20 18 Q12 14 16 8Z" fill="none" stroke="url(#siG)" stroke-width="4" stroke-linecap="round"/>
+      <path d="M56 10 Q64 6 70 10 Q76 14 72 22 Q68 30 74 34 Q80 38 76 46 Q72 54 66 50 Q60 46 64 38 Q68 30 62 26 Q56 22 58 14Z" fill="none" stroke="url(#siG)" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/></svg>`
+  },
+  bladder: {
+    name: 'Bladder',
+    color: '#67e8f9',
+    hint: 'Stretchy bag that stores urine',
+    zone: { x: 186, y: 440, w: 48, h: 38 },
+    fact: 'Your bladder can stretch to hold about 400-600 ml of urine - roughly the size of a softball!',
+    svg: `<svg viewBox="0 0 48 40"><defs>
+      <radialGradient id="blG" cx="50%" cy="40%"><stop offset="0%" stop-color="#a5f3fc"/><stop offset="100%" stop-color="#22a8c0"/></radialGradient>
+      </defs>
+      <path d="M24 36 Q10 36 6 24 Q2 14 8 8 Q14 2 24 2 Q34 2 40 8 Q46 14 42 24 Q38 36 24 36Z" fill="url(#blG)" stroke="#1a8a9e" stroke-width="1.2"/>
+      <path d="M22 4 L22 0" stroke="#1a8a9e" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+      <path d="M26 4 L26 0" stroke="#1a8a9e" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+      <path d="M16 14 Q20 10 28 12" fill="none" stroke="#a5f3fc" stroke-width="1.2" opacity="0.35" stroke-linecap="round"/></svg>`
+  }
+};
+
+// ============ GAME STATE ============
+let gameState = {
+  active: false,
+  selectedOrgans: [],
+  placedOrgans: new Set(),
+  score: 0,
+  streak: 0,
+  bestStreak: 0,
+  attempts: 0,
+  difficulty: 'easy',
+  timerInterval: null,
+  seconds: 0,
+  dragData: null
+};
+
+// ============ AUDIO ============
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function ensureAudio() { if (!audioCtx) audioCtx = new AudioCtx(); }
+
+function playCorrect() {
+  ensureAudio();
+  [523,659,784].forEach((f,i) => {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.type = 'sine'; o.frequency.setValueAtTime(f, audioCtx.currentTime + i*0.08);
+    g.gain.setValueAtTime(0.12, audioCtx.currentTime + i*0.08);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i*0.08 + 0.3);
+    o.start(audioCtx.currentTime + i*0.08); o.stop(audioCtx.currentTime + i*0.08 + 0.3);
+  });
+}
+
+function playWrong() {
+  ensureAudio();
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(180, audioCtx.currentTime);
+  o.frequency.linearRampToValueAtTime(120, audioCtx.currentTime + 0.25);
+  g.gain.setValueAtTime(0.06, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+  o.start(); o.stop(audioCtx.currentTime + 0.25);
+}
+
+function playComplete() {
+  ensureAudio();
+  [523,659,784,880,1047].forEach((f,i) => {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.type = 'sine'; o.frequency.setValueAtTime(f, audioCtx.currentTime + i*0.12);
+    g.gain.setValueAtTime(0.1, audioCtx.currentTime + i*0.12);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i*0.12 + 0.5);
+    o.start(audioCtx.currentTime + i*0.12); o.stop(audioCtx.currentTime + i*0.12 + 0.5);
+  });
+}
+
+// ============ INIT CHECKBOXES ============
+function initCheckboxes() {
+  const container = document.getElementById('checkboxes');
+  container.innerHTML = '';
+  Object.entries(ORGANS).forEach(([key, organ]) => {
+    const label = document.createElement('label');
+    label.className = 'organ-checkbox';
+    label.innerHTML = `
+      <input type="checkbox" value="${key}" checked>
+      <span class="cb-dot" style="background:${organ.color};color:${organ.color}"></span>
+      <span class="cb-label">${organ.name}</span>`;
+    container.appendChild(label);
+  });
+}
+
+function selectAll() { document.querySelectorAll('.organ-checkbox input').forEach(cb => cb.checked = true); }
+function selectNone() { document.querySelectorAll('.organ-checkbox input').forEach(cb => cb.checked = false); }
+
+const diffDescs = {
+  easy: 'Drop zones glow gently to guide you',
+  medium: 'Drop zones are subtle — trust your knowledge',
+  hard: 'Zones are nearly invisible — expert mode!'
+};
+
+function setDifficulty(diff, btn) {
+  gameState.difficulty = diff;
+  document.querySelectorAll('.difficulty button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('diffDesc').textContent = diffDescs[diff];
+}
+
+// ============ START GAME ============
+function startGame() {
+  const checked = [...document.querySelectorAll('.organ-checkbox input:checked')].map(cb => cb.value);
+  if (checked.length < 2) { alert('Please select at least 2 organs!'); return; }
+
+  gameState = { ...gameState, active: true, selectedOrgans: checked, placedOrgans: new Set(), score: 0, streak: 0, bestStreak: 0, attempts: 0, seconds: 0 };
+  document.getElementById('score').textContent = '0';
+  document.getElementById('streak').textContent = '0';
+  document.getElementById('placed').textContent = '0';
+  document.getElementById('total').textContent = checked.length;
+
+  if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+  gameState.timerInterval = setInterval(() => {
+    gameState.seconds++;
+    const m = Math.floor(gameState.seconds / 60), s = gameState.seconds % 60;
+    document.getElementById('timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  }, 1000);
+
+  buildDropZones();
+  buildOrganCards();
+  shuffleCards();
+}
+
+// ============ DROP ZONES (no names!) ============
+function buildDropZones() {
+  const wrapper = document.getElementById('bodyWrapper');
+  wrapper.querySelectorAll('.drop-zone, .placed-organ').forEach(el => el.remove());
+
+  gameState.selectedOrgans.forEach(key => {
+    const organ = ORGANS[key];
+    const zone = document.createElement('div');
+    zone.className = 'drop-zone';
+    zone.dataset.organ = key;
+    zone.style.left = organ.zone.x + 'px';
+    zone.style.top = organ.zone.y + 'px';
+    zone.style.width = organ.zone.w + 'px';
+    zone.style.height = organ.zone.h + 'px';
+
+    // Difficulty controls hint visibility — NEVER show names
+    if (gameState.difficulty === 'easy') {
+      zone.classList.add('glow-hint');
+    } else if (gameState.difficulty === 'medium') {
+      zone.classList.add('no-hint');
+    } else {
+      zone.classList.add('hard-hint');
+    }
+
+    zone.addEventListener('dragover', handleDragOver);
+    zone.addEventListener('dragenter', handleDragEnter);
+    zone.addEventListener('dragleave', handleDragLeave);
+    zone.addEventListener('drop', handleDrop);
+    zone.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    wrapper.appendChild(zone);
+  });
+}
+
+// ============ ORGAN CARDS ============
+function buildOrganCards() {
+  const tray = document.getElementById('organsTray');
+  tray.innerHTML = '';
+
+  gameState.selectedOrgans.forEach(key => {
+    const organ = ORGANS[key];
+    const card = document.createElement('div');
+    card.className = 'organ-card';
+    card.dataset.organ = key;
+    card.draggable = true;
+    card.style.setProperty('--card-color', organ.color);
+    card.querySelector?.('::before')?.style;
+
+    const showHint = gameState.difficulty !== 'hard';
+    card.innerHTML = `
+      <div class="organ-icon">${organ.svg}</div>
+      <div class="organ-info">
+        <div class="organ-name" style="color:${organ.color}">${organ.name}</div>
+        ${showHint ? `<div class="organ-hint">${organ.hint}</div>` : ''}
+      </div>`;
+
+    // Color accent bar
+    card.style.borderLeftColor = organ.color + '40';
+    const style = document.createElement('style');
+
+    card.addEventListener('dragstart', handleDragStart);
+    card.addEventListener('dragend', handleDragEnd);
+    card.addEventListener('touchstart', handleTouchStart, { passive: false });
+    card.addEventListener('touchmove', handleTouchMove, { passive: false });
+    card.addEventListener('touchend', handleTouchEnd);
+    tray.appendChild(card);
+  });
+
+  // Inject colored left borders via inline style overrides
+  tray.querySelectorAll('.organ-card').forEach(c => {
+    const color = ORGANS[c.dataset.organ].color;
+    c.style.borderLeft = `3px solid ${color}50`;
+  });
+}
+
+function shuffleCards() {
+  const tray = document.getElementById('organsTray');
+  const cards = [...tray.children];
+  for (let i = cards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    tray.appendChild(cards[j]);
+    [cards[i], cards[j]] = [cards[j], cards[i]];
+  }
+}
+
+// ============ DRAG & DROP ============
+function handleDragStart(e) {
+  if (!gameState.active) return;
+  const key = e.currentTarget.dataset.organ;
+  gameState.dragData = key;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', key);
+
+  const organ = ORGANS[key];
+  const ghost = document.createElement('div');
+  ghost.innerHTML = organ.svg;
+  ghost.style.width = '60px'; ghost.style.height = '60px';
+  ghost.style.position = 'absolute'; ghost.style.top = '-1000px';
+  document.body.appendChild(ghost);
+  e.dataTransfer.setDragImage(ghost, 30, 30);
+  setTimeout(() => ghost.remove(), 0);
+}
+
+function handleDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  gameState.dragData = null;
+  document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('drag-over'));
+}
+
+function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+function handleDragEnter(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function handleDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+
+function handleDrop(e) {
+  e.preventDefault();
+  const zone = e.currentTarget;
+  zone.classList.remove('drag-over');
+  checkPlacement(e.dataTransfer.getData('text/plain') || gameState.dragData, zone.dataset.organ, zone);
+}
+
+// ============ TOUCH SUPPORT ============
+let touchGhost = null, touchStartCard = null;
+
+function handleTouchStart(e) {
+  if (!gameState.active) return;
+  e.preventDefault();
+  const card = e.currentTarget, key = card.dataset.organ;
+  gameState.dragData = key;
+  touchStartCard = card;
+  card.classList.add('dragging');
+
+  touchGhost = document.createElement('div');
+  touchGhost.className = 'drag-ghost';
+  touchGhost.innerHTML = ORGANS[key].svg;
+  touchGhost.style.width = '64px'; touchGhost.style.height = '64px';
+  const t = e.touches[0];
+  touchGhost.style.left = (t.clientX - 32) + 'px';
+  touchGhost.style.top = (t.clientY - 32) + 'px';
+  document.body.appendChild(touchGhost);
+}
+
+function handleTouchMove(e) {
+  e.preventDefault();
+  if (!touchGhost) return;
+  const t = e.touches[0];
+  touchGhost.style.left = (t.clientX - 32) + 'px';
+  touchGhost.style.top = (t.clientY - 32) + 'px';
+  document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('drag-over'));
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  if (el) { const z = el.closest('.drop-zone'); if (z) z.classList.add('drag-over'); }
+}
+
+function handleTouchEnd(e) {
+  if (!touchGhost) return;
+  const t = e.changedTouches[0];
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  if (el) { const z = el.closest('.drop-zone'); if (z) checkPlacement(gameState.dragData, z.dataset.organ, z); }
+  if (touchStartCard) touchStartCard.classList.remove('dragging');
+  if (touchGhost) { touchGhost.remove(); touchGhost = null; }
+  touchStartCard = null;
+  gameState.dragData = null;
+  document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('drag-over'));
+}
+
+// ============ CHECK PLACEMENT ============
+function checkPlacement(draggedOrgan, targetOrgan, zone) {
+  if (!draggedOrgan || !targetOrgan) return;
+  if (gameState.placedOrgans.has(targetOrgan)) return;
+  gameState.attempts++;
+
+  if (draggedOrgan === targetOrgan) {
+    playCorrect();
+    gameState.placedOrgans.add(draggedOrgan);
+    gameState.streak++;
+    if (gameState.streak > gameState.bestStreak) gameState.bestStreak = gameState.streak;
+
+    const diffMul = { easy: 1, medium: 1.5, hard: 2 }[gameState.difficulty];
+    const points = Math.round((100 + gameState.streak * 25) * diffMul);
+    gameState.score += points;
+
+    document.getElementById('score').textContent = gameState.score;
+    document.getElementById('streak').textContent = gameState.streak;
+    document.getElementById('placed').textContent = gameState.placedOrgans.size;
+
+    // Show points popup
+    showPointsPopup(zone, '+' + points);
+
+    zone.classList.add('correct');
+    zone.innerHTML = '';
+    zone.style.border = 'none';
+    zone.style.background = 'none';
+    zone.style.animation = 'none';
+
+    const organ = ORGANS[draggedOrgan];
+    const placed = document.createElement('div');
+    placed.className = 'placed-organ';
+    placed.style.left = organ.zone.x + 'px';
+    placed.style.top = organ.zone.y + 'px';
+    placed.style.width = organ.zone.w + 'px';
+    placed.style.height = organ.zone.h + 'px';
+    placed.innerHTML = `<div style="width:100%;height:calc(100% - 12px)">${organ.svg}</div><span class="placed-label">${organ.name}</span>`;
+    document.getElementById('bodyWrapper').appendChild(placed);
+
+    const card = document.querySelector(`.organ-card[data-organ="${draggedOrgan}"]`);
+    if (card) card.classList.add('placed-card');
+
+    showFunFact(organ.fact);
+    spawnMiniParticles(zone, organ.color);
+
+    if (gameState.placedOrgans.size === gameState.selectedOrgans.length) {
+      setTimeout(showCompletion, 900);
+    }
+  } else {
+    playWrong();
+    gameState.streak = 0;
+    document.getElementById('streak').textContent = '0';
+    zone.classList.add('wrong');
+    setTimeout(() => zone.classList.remove('wrong'), 500);
+  }
+}
+
+// ============ POINTS POPUP ============
+function showPointsPopup(zone, text) {
+  const rect = zone.getBoundingClientRect();
+  const p = document.createElement('div');
+  p.className = 'points-popup';
+  p.textContent = text;
+  p.style.left = (rect.left + rect.width / 2 - 20) + 'px';
+  p.style.top = (rect.top) + 'px';
+  document.body.appendChild(p);
+  setTimeout(() => p.remove(), 1000);
+}
+
+// ============ FUN FACT ============
+let factTimeout;
+function showFunFact(text) {
+  const el = document.getElementById('funFact');
+  document.getElementById('factText').textContent = text;
+  el.classList.add('show');
+  clearTimeout(factTimeout);
+  factTimeout = setTimeout(() => el.classList.remove('show'), 5000);
+}
+
+// ============ MINI PARTICLES ============
+function spawnMiniParticles(zone, baseColor) {
+  const rect = zone.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+  const colors = [baseColor, '#7f5af0', '#ff6e96', '#2cb67d', '#ffb347'];
+
+  for (let i = 0; i < 16; i++) {
+    const p = document.createElement('div');
+    const size = 3 + Math.random() * 7;
+    p.style.cssText = `position:fixed;left:${cx}px;top:${cy}px;width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:50%;pointer-events:none;z-index:55;transition:all ${0.4+Math.random()*0.5}s ease-out;`;
+    document.body.appendChild(p);
+    requestAnimationFrame(() => {
+      p.style.left = (cx + (Math.random()-0.5)*140) + 'px';
+      p.style.top = (cy + (Math.random()-0.5)*140) + 'px';
+      p.style.opacity = '0';
+      p.style.transform = 'scale(0)';
+    });
+    setTimeout(() => p.remove(), 1000);
+  }
+}
+
+// ============ COMPLETION ============
+function showCompletion() {
+  playComplete();
+  clearInterval(gameState.timerInterval);
+  const m = Math.floor(gameState.seconds / 60), s = gameState.seconds % 60;
+  const timeStr = `${m}:${s.toString().padStart(2,'0')}`;
+  const accuracy = Math.round((gameState.selectedOrgans.length / gameState.attempts) * 100);
+
+  let stars = '';
+  if (accuracy >= 90) stars = '\u2B50\u2B50\u2B50';
+  else if (accuracy >= 70) stars = '\u2B50\u2B50';
+  else stars = '\u2B50';
+
+  document.getElementById('overlayScore').textContent = gameState.score;
+  document.getElementById('overlayStars').textContent = stars;
+  document.getElementById('overlayTime').textContent = `Time: ${timeStr}  |  Accuracy: ${accuracy}%  |  Best streak: ${gameState.bestStreak}`;
+
+  if (accuracy === 100) {
+    document.getElementById('overlayTitle').textContent = 'Perfect Score!';
+    document.getElementById('overlaySubtitle').textContent = 'Every organ placed on the first try!';
+  } else if (accuracy >= 80) {
+    document.getElementById('overlayTitle').textContent = 'Excellent Work!';
+    document.getElementById('overlaySubtitle').textContent = 'You really know your anatomy!';
+  } else {
+    document.getElementById('overlayTitle').textContent = 'Well Done!';
+    document.getElementById('overlaySubtitle').textContent = 'Keep practicing to get a perfect score!';
+  }
+
+  document.getElementById('overlay').classList.add('show');
+  launchConfetti();
+}
+
+// ============ CONFETTI ============
+function launchConfetti() {
+  const colors = ['#7f5af0','#ff6e96','#2cb67d','#ffb347','#79c7ff','#f7d794','#a855f7','#67e8f9'];
+  for (let i = 0; i < 100; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    const color = colors[Math.floor(Math.random()*colors.length)];
+    const size = 5 + Math.random()*10;
+    const startX = Math.random() * window.innerWidth;
+    const drift = (Math.random()-0.5) * 250;
+    const dur = 1.5 + Math.random()*2.5;
+    const delay = Math.random() * 1;
+    const rot = Math.random() * 900;
+    const shapes = [
+      `width:${size}px;height:${size}px;background:${color};border-radius:50%;`,
+      `width:${size}px;height:${size}px;background:${color};border-radius:2px;`,
+      `width:0;height:0;border-left:${size/2}px solid transparent;border-right:${size/2}px solid transparent;border-bottom:${size}px solid ${color};`
+    ];
+    p.style.cssText = `left:${startX}px;top:-20px;${shapes[Math.floor(Math.random()*3)]}transition:all ${dur}s cubic-bezier(0.25,0.46,0.45,0.94) ${delay}s;`;
+    document.body.appendChild(p);
+    requestAnimationFrame(() => {
+      p.style.top = (window.innerHeight + 40) + 'px';
+      p.style.left = (startX + drift) + 'px';
+      p.style.transform = `rotate(${rot}deg)`;
+      p.style.opacity = '0';
+    });
+    setTimeout(() => p.remove(), (dur+delay)*1000 + 200);
+  }
+}
+
+// ============ RESET ============
+function resetGame() {
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('funFact').classList.remove('show');
+  if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+  document.getElementById('timer').textContent = '0:00';
+  gameState.active = false;
+  gameState.placedOrgans = new Set();
+  document.getElementById('bodyWrapper').querySelectorAll('.drop-zone, .placed-organ').forEach(el => el.remove());
+  document.getElementById('organsTray').innerHTML = '';
+  document.getElementById('score').textContent = '0';
+  document.getElementById('streak').textContent = '0';
+  document.getElementById('placed').textContent = '0';
+  document.getElementById('total').textContent = '0';
+}
+
+// ============ INIT ============
+initCheckboxes();
+</script>
+</body>
+</html>
